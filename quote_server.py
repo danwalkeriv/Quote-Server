@@ -37,7 +37,7 @@ def run_server(quote_filename):
     file."""
     global quotes
     quotes = load_quotes(quote_filename)
-    bottle.run(host='localhost', port=8080)
+    bottle.run(host='0.0.0.0', port=8080)
 
 
 def main(argv = None):
