@@ -2,6 +2,7 @@ import sys
 import bottle
 import argparse
 import random
+import json
 import bottle
 
 quotes = None
@@ -9,6 +10,7 @@ quotes = None
 # File parsing
 def load_quotes(quote_filename):
     """Parses a quote file that consists of quotes separated by empty lines."""
+    print(quote_filename)
     quotes = []
     with open(quote_filename) as quote_file:
         current_quote = []
@@ -25,18 +27,33 @@ def load_quotes(quote_filename):
 
 
 # Routes
-@bottle.route('/')
-def random_quote():
+@bottle.route('/<dataset>')
+@bottle.route('/<dataset>/random')
+def random_quote(dataset):
     """Returns a random quote from the global list of quotes."""
     global quotes
-    return random.sample(quotes, 1)[0]
+    return random.sample(quotes[dataset], 1)[0]
 
 
-def run_server(quote_filename):
+@bottle.route('/')
+def default_random_quote():
+    global quotes
+    dataset = random.sample(quotes.keys(), 1)[0]
+    return random_quote(dataset)
+
+
+@bottle.route('/<dataset>/<index:int>')
+def get_quote(dataset, index):
+    """Returns a specific quote by its index."""
+    global quotes
+    return quotes[dataset][index]
+
+
+def run_server(quote_table):
     """Starts the bottle server after loading the quotes from the specified
     file."""
     global quotes
-    quotes = load_quotes(quote_filename)
+    quotes = quote_table
     bottle.run(host='0.0.0.0', port=8080)
 
 
@@ -44,11 +61,13 @@ def main(argv = None):
     if not argv:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description=("Server that returns a "
-            "random quote"))
-    parser.add_argument('--quote-file', default='christmas_messages.txt')
-    options = parser.parse_args(argv)
-    run_server(options.quote_file)    
+    with open('config.json', 'r') as config_file:
+        file_map = json.load(config_file)
+    
+    quote_table = dict((k, load_quotes(v)) for k, v in file_map.iteritems())
+    run_server(quote_table)
+
+    run_server()    
 
 
 if __name__ == "__main__":
